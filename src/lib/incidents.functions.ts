@@ -185,7 +185,7 @@ export const compareAnalyses = createServerFn({ method: "POST" })
     const errors = [before, after]
       .filter((r): r is PromiseRejectedResult => r.status === "rejected")
       .map((r) =>
-        r.reason?.name === "TimeoutError" || /fetch failed|ENOTFOUND|ECONNREFUSED/i.test(String(r.reason?.message))
+        r.reason?.name === "TimeoutError" || /fetch failed|ENOTFOUND|ECONNREFUSED|returned (404|502|503)/i.test(String(r.reason?.message))
           ? "The IncidentIQ backend is offline or still waking up. Try again in about 30 seconds."
           : String(r.reason?.message || r.reason),
       );
