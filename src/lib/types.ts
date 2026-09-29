@@ -18,7 +18,6 @@ export interface Incident {
   is_synthetic: boolean;
   created_at: string;
   resolved_at: string | null;
-  metadata_company?: string;
 }
 
 export interface IncidentList {
@@ -41,7 +40,7 @@ export interface Dashboard {
   by_company: { name: string; value: number }[];
   root_causes: { name: string; value: number }[];
   recent_lessons: { id: number; service: string; lessons: string; date: string | null }[];
-  bank: Record<string, any> | null;
+  bank: { status: string; stats: Record<string, any> | null } | null;
 }
 
 export interface Health {
@@ -57,8 +56,8 @@ export interface Analysis {
     likely_root_cause: string;
     confidence: "low" | "medium" | "high" | string;
     evidence: string[];
-    recommended_actions: { action?: string; title?: string; rationale?: string; priority?: string }[];
-    similar_incidents: Record<string, any>[];
+    recommended_actions: { step: string; reason: string }[];
+    similar_incidents: { incident_id: string; reason: string }[];
     memory_insights: string[];
     uncertainties: string[];
   };

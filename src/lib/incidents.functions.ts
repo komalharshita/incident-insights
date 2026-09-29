@@ -118,7 +118,7 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(async (): 
     incidents.forEach((i) => m.set(key(i), (m.get(key(i)) || 0) + 1));
     return [...m.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   };
-  const company = (i: Incident) => String((i.metadata_company ?? i.metrics?.company) || i.service.split("-")[0]);
+  const company = (i: Incident) => String(i.metrics?.company || i.service.split("-")[0]);
   const themes: [string, RegExp][] = [
     ["Bad config / rule push", /config|rule|policy|feature file|flag|channel file/i],
     ["Human command error", /typo|mistyp|manual|ran |command|script/i],
@@ -147,7 +147,7 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(async (): 
       .sort((a, b) => (b.resolved_at || "").localeCompare(a.resolved_at || ""))
       .slice(0, 5)
       .map((i) => ({ id: i.id, service: i.service, lessons: i.lessons_learned || "", date: i.resolved_at })),
-    bank: live?.bank || live?.memory_bank || live?.hindsight || null,
+    bank: live ? { status: live.hindsight_status, stats: live.hindsight_stats } : null,
   };
 });
 
