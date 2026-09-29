@@ -42,7 +42,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 data == null ? "bg-muted-foreground" : data.online ? "bg-success" : "bg-warning",
               )}
             />
-            {data == null ? "checking AI backend…" : data.online ? `data: cloud · AI ${data.status}` : "data: cloud · AI backend asleep"}
+            {data == null ? "checking AI…" : `Lovable Cloud · AI ${data.status}`}
           </div>
         </div>
       </header>

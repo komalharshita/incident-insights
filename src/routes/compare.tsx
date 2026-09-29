@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { queryOptions, useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { compareAnalyses, listIncidents } from "@/lib/incidents.functions";
@@ -46,7 +46,9 @@ function ComparePage() {
   const compare = useServerFn(compareAnalyses);
   const picked = list.items.find((i) => i.id === incident) ?? list.items[0];
 
+  const qc = useQueryClient();
   const run = useMutation({
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
     mutationFn: (i: Incident) => compare({ data: { incident_id: i.id } }),
   });
   const res = run.data;
