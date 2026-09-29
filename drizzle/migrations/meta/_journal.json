@@ -15,6 +15,13 @@
       "when": 1790694168062,
       "tag": "0001_create_analysis_runs",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790698822031,
+      "tag": "0002_remove_public_read_policies",
+      "breakpoints": true
     }
   ]
 }
