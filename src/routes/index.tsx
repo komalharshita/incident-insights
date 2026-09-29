@@ -7,6 +7,7 @@ import { PageHeader, SourceNote, formatDay, formatMinutes } from "@/components/a
 const dashboardQuery = queryOptions({ queryKey: ["dashboard"], queryFn: () => getDashboard() });
 
 export const Route = createFileRoute("/")({
+  staticData: { sitemap: true },
   head: () => ({
     meta: [
       { title: "IncidentIQ — memory dashboard" },
