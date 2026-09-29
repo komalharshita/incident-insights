@@ -51,67 +51,66 @@ const listInput = z.object({
   page_size: z.number().int().min(1).max(100).default(12),
 });
 
+// Public read-only client for the incidents table in Lovable Cloud.
+async function db() {
+  const { createClient } = await import("@supabase/supabase-js");
+  const key = process.env['SUPABASE_PUBLISHABLE_KEY']!;
+  return createClient(process.env['SUPABASE_URL']!, key, {
+    auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+    global: {
+      fetch: (input, init) => {
+        const h = new Headers(init?.headers);
+        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) h.delete("Authorization");
+        h.set("apikey", key);
+        return fetch(input, { ...init, headers: h });
+      },
+    },
+  });
+}
+
+async function allIncidents(): Promise<{ items: Incident[]; cloud: boolean }> {
+  try {
+    const { data, error } = await (await db()).from("incidents").select("*").order("created_at", { ascending: false });
+    if (error) throw error;
+    return { items: (data || []) as unknown as Incident[], cloud: true };
+  } catch {
+    return { items: seedIncidents().sort((a, b) => b.created_at.localeCompare(a.created_at)), cloud: false };
+  }
+}
+
 export const listIncidents = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => listInput.parse(d ?? {}))
   .handler(async ({ data }): Promise<IncidentList> => {
-    const q = new URLSearchParams(
-      Object.entries(data).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => [k, String(v)]),
-    );
-    try {
-      return { ...(await call<Omit<IncidentList, "source">>(`/api/incidents?${q}`)), source: "live" };
-    } catch {
-      let items = seedIncidents().sort((a, b) => b.created_at.localeCompare(a.created_at));
-      if (data.service) items = items.filter((i) => i.service === data.service);
-      if (data.severity) items = items.filter((i) => i.severity === data.severity);
-      if (data.status) items = items.filter((i) => i.status === data.status);
-      const total = items.length;
-      const start = (data.page - 1) * data.page_size;
-      return {
-        items: items.slice(start, start + data.page_size),
-        page: data.page,
-        page_size: data.page_size,
-        total,
-        pages: Math.max(1, Math.ceil(total / data.page_size)),
-        source: "offline",
-      };
-    }
+    let { items, cloud } = await allIncidents();
+    if (data.service) items = items.filter((i) => i.service === data.service);
+    if (data.severity) items = items.filter((i) => i.severity === data.severity);
+    if (data.status) items = items.filter((i) => i.status === data.status);
+    const total = items.length;
+    const start = (data.page - 1) * data.page_size;
+    return {
+      items: items.slice(start, start + data.page_size),
+      page: data.page,
+      page_size: data.page_size,
+      total,
+      pages: Math.max(1, Math.ceil(total / data.page_size)),
+      source: cloud ? "live" : "offline",
+    };
   });
 
 export const listServices = createServerFn({ method: "GET" }).handler(async (): Promise<string[]> => {
-  try {
-    const d = await call<any>("/api/memory");
-    const s = d?.services || d?.incident_counts?.by_service;
-    if (Array.isArray(s)) return s.map((x: any) => (typeof x === "string" ? x : x.service)).filter(Boolean);
-    if (s && typeof s === "object") return Object.keys(s);
-  } catch {
-    /* fall through */
-  }
-  return [...new Set(seedIncidents().map((i) => i.service))].sort();
+  const { items } = await allIncidents();
+  return [...new Set(items.map((i) => i.service))].sort();
 });
 
 export const getDashboard = createServerFn({ method: "GET" }).handler(async (): Promise<Dashboard> => {
+  // Memory-bank stats still come from the Render backend when it happens to be awake.
   let live: any = null;
   try {
-    live = await call<any>("/api/memory");
+    live = await call<any>("/api/memory", undefined, 4000);
   } catch {
     live = null;
   }
-  // Always compute the charts from incident records so the shape is predictable.
-  let incidents: Incident[] = [];
-  if (live) {
-    try {
-      const all: Incident[] = [];
-      for (let page = 1; page <= 5; page++) {
-        const d = await call<IncidentList>(`/api/incidents?page=${page}&page_size=100`);
-        all.push(...d.items);
-        if (page >= d.pages) break;
-      }
-      incidents = all;
-    } catch {
-      incidents = seedIncidents();
-    }
-  } else incidents = seedIncidents();
-
+  const { items: incidents, cloud } = await allIncidents();
   const resolved = incidents.filter((i) => i.status === "resolved");
   const count = (key: (i: Incident) => string) => {
     const m = new Map<string, number>();
@@ -133,7 +132,7 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(async (): 
     .sort((a, b) => b.value - a.value);
   const minutes = resolved.map((i) => i.resolution_time_minutes || 0).sort((a, b) => a - b);
   return {
-    source: live ? "live" : "offline",
+    source: cloud ? "live" : "offline",
     total: incidents.length,
     resolved: resolved.length,
     open: incidents.length - resolved.length,
