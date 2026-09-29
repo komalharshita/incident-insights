@@ -34,21 +34,10 @@ const listInput = z.object({
   page_size: z.number().int().min(1).max(100).default(12),
 });
 
-// Public read-only client for the incidents table in Lovable Cloud.
+// Server-only client; tables have no public read policies. Only curated fields are returned to the browser.
 async function db() {
-  const { createClient } = await import("@supabase/supabase-js");
-  const key = process.env['SUPABASE_PUBLISHABLE_KEY']!;
-  return createClient(process.env['SUPABASE_URL']!, key, {
-    auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
-    global: {
-      fetch: (input, init) => {
-        const h = new Headers(init?.headers);
-        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) h.delete("Authorization");
-        h.set("apikey", key);
-        return fetch(input, { ...init, headers: h });
-      },
-    },
-  });
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  return supabaseAdmin;
 }
 
 async function allIncidents(): Promise<{ items: Incident[]; cloud: boolean }> {
