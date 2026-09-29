@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { keepPreviousData, queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { z } from "zod";
 import { listIncidents, listServices } from "@/lib/incidents.functions";
@@ -17,7 +17,6 @@ const incidentsQuery = (s: Search) =>
   queryOptions({
     queryKey: ["incidents", s],
     queryFn: () => listIncidents({ data: { ...s, page: s.page ?? 1, page_size: 12 } }),
-    placeholderData: keepPreviousData,
   });
 const servicesQuery = queryOptions({ queryKey: ["services"], queryFn: () => listServices() });
 
@@ -43,7 +42,7 @@ function IncidentsPage() {
   const s = Route.useSearch();
   const navigate = useNavigate({ from: "/incidents" });
   const { data: services } = useSuspenseQuery(servicesQuery);
-  const { data, isFetching } = useQuery(incidentsQuery(s));
+  const { data, isFetching } = useSuspenseQuery(incidentsQuery(s));
   const [open, setOpen] = useState<number | null>(null);
   const set = (patch: Partial<Search>) => navigate({ search: (prev) => ({ ...prev, ...patch, page: undefined }) });
 
