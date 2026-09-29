@@ -3,23 +3,6 @@ import { z } from "zod";
 import seed from "@/data/incidents.json";
 import type { Incident, IncidentList, Dashboard, Analysis, Health } from "./types";
 
-const DEFAULT_API = "https://incidentiq-backend.onrender.com";
-const apiBase = () => (process.env['INCIDENTIQ_API_URL'] || DEFAULT_API).replace(/\/$/, "");
-
-async function call<T>(path: string, init?: RequestInit, timeoutMs = 12000): Promise<T> {
-  const res = await fetch(`${apiBase()}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  const body = await res.json().catch(() => null);
-  if (!res.ok) {
-    const d = body?.detail;
-    throw new Error(typeof d === "string" ? d : d?.message || `Backend returned ${res.status}`);
-  }
-  return body as T;
-}
-
 // Bundled copy of the same 25 real public postmortems the backend seeds.
 function seedIncidents(): Incident[] {
   return (seed as any[]).map((r) => ({
@@ -103,12 +86,12 @@ export const listServices = createServerFn({ method: "GET" }).handler(async (): 
 });
 
 export const getDashboard = createServerFn({ method: "GET" }).handler(async (): Promise<Dashboard> => {
-  // Memory-bank stats still come from the Render backend when it happens to be awake.
-  let live: any = null;
+  let runs: any[] = [];
   try {
-    live = await call<any>("/api/memory", undefined, 4000);
+    const { data } = await (await db()).from("analysis_runs").select("*").order("created_at", { ascending: false }).limit(200);
+    runs = data || [];
   } catch {
-    live = null;
+    runs = [];
   }
   const { items: incidents, cloud } = await allIncidents();
   const resolved = incidents.filter((i) => i.status === "resolved");
@@ -146,51 +129,63 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(async (): 
       .sort((a, b) => (b.resolved_at || "").localeCompare(a.resolved_at || ""))
       .slice(0, 5)
       .map((i) => ({ id: i.id, service: i.service, lessons: i.lessons_learned || "", date: i.resolved_at })),
-    bank: live ? { status: live.hindsight_status, stats: live.hindsight_stats } : null,
+    bank: {
+      memories: resolved.length,
+      runs: runs.length,
+      avg_before: runs.length ? Math.round(runs.reduce((t, r) => t + r.score_before, 0) / runs.length) : null,
+      avg_after: runs.length ? Math.round(runs.reduce((t, r) => t + r.score_after, 0) / runs.length) : null,
+      recent_runs: runs.slice(0, 5).map((r) => ({ incident_id: r.incident_id, service: r.service, before: r.score_before, after: r.score_after, recalled: r.memories_recalled, at: r.created_at })),
+    },
   };
 });
 
 export const getHealth = createServerFn({ method: "GET" }).handler(async (): Promise<Health> => {
-  try {
-    const h = await call<any>("/health", undefined, 8000);
-    return { online: true, status: h?.status || "ok", detail: h };
-  } catch (e) {
-    return { online: false, status: "offline", detail: { message: (e as Error).message } };
-  }
+  const ai = !!process.env["LOVABLE_API_KEY"];
+  return { online: ai, status: ai ? "ready" : "not configured", detail: {} };
 });
 
-const compareInput = z.object({
-  incident: z.object({
-    service: z.string().min(1).max(120),
-    severity: z.enum(["low", "medium", "high", "critical"]),
-    symptoms: z.array(z.string().min(1).max(500)).min(1).max(30),
-    logs: z.string().min(1).max(20000),
-    metrics: z.record(z.string(), z.any()).default({}),
-    deployment_version: z.string().max(120),
-    description: z.string().max(5000),
-  }),
-  exclude_incident_id: z.number().int().optional(),
-});
+const compareInput = z.object({ incident_id: z.number().int().positive() });
 
 export const compareAnalyses = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => compareInput.parse(d))
-  .handler(async ({ data }): Promise<{ before: Analysis | null; after: Analysis | null; errors: string[] }> => {
-    const body = JSON.stringify(data.incident);
-    const exclude = data.exclude_incident_id ? `&exclude_incident_id=${data.exclude_incident_id}` : "";
-    const [before, after] = await Promise.allSettled([
-      call<Analysis>("/api/incidents/analyze?use_memory=false", { method: "POST", body }, 90000),
-      call<Analysis>(`/api/incidents/analyze?use_memory=true${exclude}`, { method: "POST", body }, 90000),
-    ]);
-    const errors = [before, after]
-      .filter((r): r is PromiseRejectedResult => r.status === "rejected")
-      .map((r) =>
-        r.reason?.name === "TimeoutError" || /fetch failed|ENOTFOUND|ECONNREFUSED|returned (404|502|503)/i.test(String(r.reason?.message))
-          ? "The IncidentIQ backend is offline or still waking up. Try again in about 30 seconds."
-          : String(r.reason?.message || r.reason),
-      );
-    return {
-      before: before.status === "fulfilled" ? before.value : null,
-      after: after.status === "fulfilled" ? after.value : null,
-      errors: [...new Set(errors)],
-    };
+  .handler(async ({ data }): Promise<{ before: Analysis | null; after: Analysis | null; errors: string[]; scores: { before: number; after: number } | null }> => {
+    const { analyze, recall } = await import("./analysis.server");
+    const { scoreAnalysis } = await import("./score");
+    const { items } = await allIncidents();
+    const target = items.find((i) => i.id === data.incident_id);
+    if (!target) return { before: null, after: null, errors: ["Incident not found."], scores: null };
+    // The replayed incident's own memory is excluded so the comparison stays honest.
+    const pool = items.filter((i) => i.id !== target.id && i.status === "resolved");
+    const memories = recall(target, pool);
+    const pack = (analysis: Analysis["analysis"], used: boolean): Analysis => ({
+      incident: target,
+      analysis,
+      memory: {
+        memory_used: used,
+        memories_retrieved: used ? memories.length : 0,
+        memories: used
+          ? memories.map(({ i, score }) => ({ id: String(i.id), content: `${i.description} Root cause: ${i.root_cause}`, relevance: Math.round(score * 100) / 100, metadata: { incident_id: i.id, service: i.service, date: i.created_at } }))
+          : [],
+        status: "ok",
+        error: null,
+      },
+    });
+    const [b, a] = await Promise.allSettled([analyze(target, []), analyze(target, memories)]);
+    const errors = [...new Set([b, a].filter((r): r is PromiseRejectedResult => r.status === "rejected").map((r) => String(r.reason?.message || r.reason)))];
+    const before = b.status === "fulfilled" ? pack(b.value, false) : null;
+    const after = a.status === "fulfilled" ? pack(a.value, true) : null;
+    let scores = null;
+    if (before && after) {
+      scores = { before: scoreAnalysis(before, target.root_cause).total, after: scoreAnalysis(after, target.root_cause).total };
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("analysis_runs").insert({
+        incident_id: target.id,
+        service: target.service,
+        score_before: scores.before,
+        score_after: scores.after,
+        memories_recalled: memories.length,
+        recalled_ids: memories.map((m) => m.i.id),
+      });
+    }
+    return { before, after, errors, scores };
   });

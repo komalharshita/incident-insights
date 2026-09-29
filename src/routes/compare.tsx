@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { queryOptions, useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { compareAnalyses, listIncidents } from "@/lib/incidents.functions";
@@ -27,18 +27,6 @@ export const Route = createFileRoute("/compare")({
   component: ComparePage,
 });
 
-function toPayload(i: Incident) {
-  return {
-    service: i.service,
-    severity: i.severity as "low" | "medium" | "high" | "critical",
-    symptoms: i.symptoms.length ? i.symptoms : [i.description],
-    logs: i.logs || i.description,
-    metrics: {},
-    deployment_version: i.deployment_version || "unknown",
-    description: i.description,
-  };
-}
-
 function ComparePage() {
   const { data: list } = useSuspenseQuery(resolvedQuery);
   const { incident } = Route.useSearch();
@@ -46,8 +34,10 @@ function ComparePage() {
   const compare = useServerFn(compareAnalyses);
   const picked = list.items.find((i) => i.id === incident) ?? list.items[0];
 
+  const qc = useQueryClient();
   const run = useMutation({
-    mutationFn: (i: Incident) => compare({ data: { incident: toPayload(i), exclude_incident_id: i.id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
+    mutationFn: (i: Incident) => compare({ data: { incident_id: i.id } }),
   });
   const res = run.data;
   const truth = picked?.root_cause;
@@ -58,7 +48,7 @@ function ComparePage() {
   return (
     <>
       <PageHeader eyebrow="Before / after" title="Same real incident, two answers">
-        Pick a real outage. The agent sees only its symptoms. It answers once with memory switched off, and once recalling past incidents from Hindsight. That incident's own memory is hidden, and its real root cause is used only to score the answers.
+        Pick a real outage. The agent sees only its symptoms. It answers once with memory switched off, and once recalling similar past incidents from its memory in Lovable Cloud. That incident's own memory is hidden, and its real root cause is used only to score the answers.
       </PageHeader>
       <SourceNote source={list.source} />
 
@@ -96,7 +86,7 @@ function ComparePage() {
 
       {run.isPending && (
         <div className="mt-6 animate-pulse rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
-          Asking the agent twice… this takes up to a minute, longer if the backend is waking up.
+          Asking the agent twice… this takes up to a minute.
         </div>
       )}
       {run.error && <ErrorBox>{(run.error as Error).message}</ErrorBox>}

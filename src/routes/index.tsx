@@ -34,7 +34,6 @@ function Stat({ label, value, hint }: { label: string; value: string | number; h
 function Overview() {
   const { data } = useSuspenseQuery(dashboardQuery);
   const top = data.root_causes[0];
-  const stats = data.bank?.stats ?? null;
   return (
     <>
       <PageHeader eyebrow="Memory dashboard" title="What the agent has learned">
@@ -74,24 +73,31 @@ function Overview() {
 
         <section className="rounded-lg border border-border bg-card p-6">
           <h2 className="text-lg font-bold">Memory bank</h2>
-          <div className="mt-3 flex items-center gap-2 text-sm">
-            <span className={`h-2 w-2 rounded-full ${data.bank?.status === "ok" ? "bg-success" : "bg-warning"}`} />
-            {data.bank ? `Hindsight: ${data.bank.status}` : "Hindsight: not reachable"}
-          </div>
-          {stats ? (
-            <dl className="mt-4 space-y-2 font-mono text-sm">
-              {Object.entries(stats)
-                .filter(([, v]) => typeof v !== "object")
-                .slice(0, 8)
-                .map(([k, v]) => (
-                  <div key={k} className="flex justify-between gap-4 border-b border-border pb-1.5">
-                    <dt className="text-muted-foreground">{k.replace(/_/g, " ")}</dt>
-                    <dd>{String(v)}</dd>
-                  </div>
+          <dl className="mt-4 space-y-2 font-mono text-sm">
+            {[
+              ["memories stored", data.bank.memories],
+              ["before/after runs", data.bank.runs],
+              ["avg score without memory", data.bank.avg_before ?? "—"],
+              ["avg score with memory", data.bank.avg_after ?? "—"],
+            ].map(([k, v]) => (
+              <div key={String(k)} className="flex justify-between gap-4 border-b border-border pb-1.5">
+                <dt className="text-muted-foreground">{k}</dt>
+                <dd>{String(v)}</dd>
+              </div>
+            ))}
+          </dl>
+          {data.bank.recent_runs.length > 0 && (
+            <>
+              <h3 className="mt-6 text-sm font-bold uppercase tracking-wider text-muted-foreground">Recent replays</h3>
+              <ul className="mt-2 space-y-1.5 font-mono text-xs">
+                {data.bank.recent_runs.map((r) => (
+                  <li key={r.at} className="flex justify-between gap-2">
+                    <span className="truncate text-muted-foreground">#{r.incident_id} {r.service}</span>
+                    <span>{r.before} → <span className="text-accent">{r.after}</span></span>
+                  </li>
                 ))}
-            </dl>
-          ) : (
-            <p className="mt-4 text-sm text-muted-foreground">Memory-bank statistics appear once the backend is connected to Hindsight.</p>
+              </ul>
+            </>
           )}
           <h3 className="mt-6 text-sm font-bold uppercase tracking-wider text-muted-foreground">By severity</h3>
           <div className="mt-2 flex flex-wrap gap-2">

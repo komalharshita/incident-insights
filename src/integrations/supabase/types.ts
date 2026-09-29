@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      analysis_runs: {
+        Row: {
+          created_at: string
+          id: string
+          incident_id: number
+          memories_recalled: number
+          recalled_ids: number[]
+          score_after: number
+          score_before: number
+          service: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          incident_id: number
+          memories_recalled?: number
+          recalled_ids?: number[]
+          score_after: number
+          score_before: number
+          service: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          incident_id?: number
+          memories_recalled?: number
+          recalled_ids?: number[]
+          score_after?: number
+          score_before?: number
+          service?: string
+        }
+        Relationships: []
+      }
       incidents: {
         Row: {
           created_at: string

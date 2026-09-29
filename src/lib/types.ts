@@ -40,7 +40,13 @@ export interface Dashboard {
   by_company: { name: string; value: number }[];
   root_causes: { name: string; value: number }[];
   recent_lessons: { id: number; service: string; lessons: string; date: string | null }[];
-  bank: { status: string; stats: Record<string, any> | null } | null;
+  bank: {
+    memories: number;
+    runs: number;
+    avg_before: number | null;
+    avg_after: number | null;
+    recent_runs: { incident_id: number; service: string; before: number; after: number; recalled: number; at: string }[];
+  };
 }
 
 export interface Health {
