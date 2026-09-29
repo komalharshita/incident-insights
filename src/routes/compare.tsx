@@ -47,7 +47,7 @@ function ComparePage() {
   const picked = list.items.find((i) => i.id === incident) ?? list.items[0];
 
   const run = useMutation({
-    mutationFn: (i: Incident) => compare({ data: { incident: toPayload(i), exclude_incident_id: i.id } }),
+    mutationFn: (i: Incident) => compare({ data: { incident_id: i.id } }),
   });
   const res = run.data;
   const truth = picked?.root_cause;
@@ -58,7 +58,7 @@ function ComparePage() {
   return (
     <>
       <PageHeader eyebrow="Before / after" title="Same real incident, two answers">
-        Pick a real outage. The agent sees only its symptoms. It answers once with memory switched off, and once recalling past incidents from Hindsight. That incident's own memory is hidden, and its real root cause is used only to score the answers.
+        Pick a real outage. The agent sees only its symptoms. It answers once with memory switched off, and once recalling similar past incidents from its memory in Lovable Cloud. That incident's own memory is hidden, and its real root cause is used only to score the answers.
       </PageHeader>
       <SourceNote source={list.source} />
 
