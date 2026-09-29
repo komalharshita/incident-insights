@@ -86,7 +86,7 @@ function ComparePage() {
 
       {run.isPending && (
         <div className="mt-6 animate-pulse rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
-          Asking the agent twice… this takes up to a minute, longer if the backend is waking up.
+          Asking the agent twice… this takes up to a minute.
         </div>
       )}
       {run.error && <ErrorBox>{(run.error as Error).message}</ErrorBox>}
