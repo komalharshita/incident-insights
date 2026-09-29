@@ -12,7 +12,7 @@
 ![AI](https://img.shields.io/badge/AI-Groq_·_Lovable_Gateway-A855F7?style=flat-square&labelColor=101726)
 ![License](https://img.shields.io/badge/license-MIT-3BA7C9?style=flat-square&labelColor=101726)
 
-[Live Dashboard](https://incident-insights-90.lovable.app) · [Backend Source](https://github.com/astacatalyst/Incident-Response-Agent) · [API Backend](https://incidentiq-backend.onrender.com)
+[Live Dashboard](https://incident-insights-90.lovable.app) · [Backend Source](https://github.com/astacatalyst/Incident-Response-Agent)
 
 </div>
 
@@ -40,7 +40,7 @@ graph TD
     A[Responder opens dashboard] --> B[TanStack Start frontend]
     B --> C[Server functions]
     C --> D[Lovable Cloud database]
-    C --> E[FastAPI backend on Render]
+    C --> E[Lovable AI Gateway analysis]
     E --> F[Hindsight memory bank]
     E --> G[Groq LLM analysis]
     D --> B
@@ -61,7 +61,7 @@ graph TD
 | Language | TypeScript |
 | Data | Lovable Cloud (managed Postgres) with bundled fallback |
 | AI backend | FastAPI, SQLite, Hindsight memory, Groq LLM |
-| Deployment | Lovable (frontend) · Render (backend) |
+| Deployment | Lovable + Lovable Cloud (data, AI, run history) |
 | Fonts | Space Grotesk · IBM Plex Sans · JetBrains Mono |
 
 ## Design system
@@ -111,7 +111,6 @@ The dashboard works immediately against Lovable Cloud data. To enable live AI an
 
 ```bash
 # .env (server-side only)
-INCIDENTIQ_API_URL=https://your-backend.onrender.com
 ```
 
 ## Data sources

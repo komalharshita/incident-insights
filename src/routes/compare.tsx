@@ -27,18 +27,6 @@ export const Route = createFileRoute("/compare")({
   component: ComparePage,
 });
 
-function toPayload(i: Incident) {
-  return {
-    service: i.service,
-    severity: i.severity as "low" | "medium" | "high" | "critical",
-    symptoms: i.symptoms.length ? i.symptoms : [i.description],
-    logs: i.logs || i.description,
-    metrics: {},
-    deployment_version: i.deployment_version || "unknown",
-    description: i.description,
-  };
-}
-
 function ComparePage() {
   const { data: list } = useSuspenseQuery(resolvedQuery);
   const { incident } = Route.useSearch();
