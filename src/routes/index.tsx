@@ -34,6 +34,7 @@ function Stat({ label, value, hint }: { label: string; value: string | number; h
 function Overview() {
   const { data } = useSuspenseQuery(dashboardQuery);
   const top = data.root_causes[0];
+  const bank = data.bank ?? { memories: data.resolved, runs: 0, avg_before: null, avg_after: null, recent_runs: [] };
   return (
     <>
       <PageHeader eyebrow="Memory dashboard" title="What the agent has learned">
@@ -75,10 +76,10 @@ function Overview() {
           <h2 className="text-lg font-bold">Memory bank</h2>
           <dl className="mt-4 space-y-2 font-mono text-sm">
             {[
-              ["memories stored", data.bank.memories],
-              ["before/after runs", data.bank.runs],
-              ["avg score without memory", data.bank.avg_before ?? "—"],
-              ["avg score with memory", data.bank.avg_after ?? "—"],
+              ["memories stored", bank.memories],
+              ["before/after runs", bank.runs],
+              ["avg score without memory", bank.avg_before ?? "—"],
+              ["avg score with memory", bank.avg_after ?? "—"],
             ].map(([k, v]) => (
               <div key={String(k)} className="flex justify-between gap-4 border-b border-border pb-1.5">
                 <dt className="text-muted-foreground">{k}</dt>
@@ -86,11 +87,11 @@ function Overview() {
               </div>
             ))}
           </dl>
-          {data.bank.recent_runs.length > 0 && (
+          {bank.recent_runs.length > 0 && (
             <>
               <h3 className="mt-6 text-sm font-bold uppercase tracking-wider text-muted-foreground">Recent replays</h3>
               <ul className="mt-2 space-y-1.5 font-mono text-xs">
-                {data.bank.recent_runs.map((r) => (
+                {bank.recent_runs.map((r) => (
                   <li key={r.at} className="flex justify-between gap-2">
                     <span className="truncate text-muted-foreground">#{r.incident_id} {r.service}</span>
                     <span>{r.before} → <span className="text-accent">{r.after}</span></span>
