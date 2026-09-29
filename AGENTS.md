@@ -1,10 +1,5 @@
-<!-- LOVABLE:BEGIN -->
-> [!IMPORTANT]
-> This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
-> published git history — force pushing, or rebasing/amending/squashing commits
-> that are already pushed — as it rewrites history on Lovable's side and the
-> user will likely lose their project history.
->
-> Commits you push to the connected branch sync back to Lovable and show up in
-> the editor, so keep the branch in a working state.
-<!-- LOVABLE:END -->
+# AGENTS.md
+- This Lovable app is a dashboard frontend for the IncidentIQ FastAPI backend (GitHub repo astacatalyst/Incident-Response-Agent); all backend calls go through server functions in src/lib/incidents.functions.ts — keeps the backend URL server-side and avoids CORS.
+- Backend URL comes from INCIDENTIQ_API_URL (defaults to https://incidentiq-backend.onrender.com) — lets the Render address change without code edits.
+- src/data/incidents.json mirrors backend/app/db/real_incidents.json and is the offline fallback for list and dashboard — screens stay populated when the free backend sleeps.
+- Single dark theme defined in src/styles.css tokens; fonts Space Grotesk / IBM Plex Sans / JetBrains Mono — matches the repo frontend's brand.
