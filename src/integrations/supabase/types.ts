@@ -14,7 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      incidents: {
+        Row: {
+          created_at: string
+          deployment_version: string
+          description: string
+          id: number
+          is_synthetic: boolean
+          lessons_learned: string | null
+          logs: string
+          metrics: Json
+          resolution: string | null
+          resolution_time_minutes: number | null
+          resolved_at: string | null
+          root_cause: string | null
+          service: string
+          severity: string
+          status: string
+          successful: boolean | null
+          symptoms: Json
+        }
+        Insert: {
+          created_at?: string
+          deployment_version?: string
+          description?: string
+          id: number
+          is_synthetic?: boolean
+          lessons_learned?: string | null
+          logs?: string
+          metrics?: Json
+          resolution?: string | null
+          resolution_time_minutes?: number | null
+          resolved_at?: string | null
+          root_cause?: string | null
+          service: string
+          severity: string
+          status?: string
+          successful?: boolean | null
+          symptoms?: Json
+        }
+        Update: {
+          created_at?: string
+          deployment_version?: string
+          description?: string
+          id?: number
+          is_synthetic?: boolean
+          lessons_learned?: string | null
+          logs?: string
+          metrics?: Json
+          resolution?: string | null
+          resolution_time_minutes?: number | null
+          resolved_at?: string | null
+          root_cause?: string | null
+          service?: string
+          severity?: string
+          status?: string
+          successful?: boolean | null
+          symptoms?: Json
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
