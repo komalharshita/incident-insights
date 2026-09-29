@@ -21,7 +21,7 @@ export const Route = createFileRoute("/")({
 
 const COLORS = ["var(--chart-2)", "var(--chart-1)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)", "var(--muted-foreground)"];
 
-function Stat({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
+function Stat({ label, value, hint }: { label: string; value: string | number; hint?: string | undefined }) {
   return (
     <div className="rounded-lg border border-border bg-card p-5">
       <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>

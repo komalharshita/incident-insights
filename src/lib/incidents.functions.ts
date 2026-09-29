@@ -4,7 +4,7 @@ import seed from "@/data/incidents.json";
 import type { Incident, IncidentList, Dashboard, Analysis, Health } from "./types";
 
 const DEFAULT_API = "https://incidentiq-backend.onrender.com";
-const apiBase = () => (process.env.INCIDENTIQ_API_URL || DEFAULT_API).replace(/\/$/, "");
+const apiBase = () => (process.env['INCIDENTIQ_API_URL'] || DEFAULT_API).replace(/\/$/, "");
 
 async function call<T>(path: string, init?: RequestInit, timeoutMs = 12000): Promise<T> {
   const res = await fetch(`${apiBase()}${path}`, {
@@ -118,7 +118,7 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(async (): 
     incidents.forEach((i) => m.set(key(i), (m.get(key(i)) || 0) + 1));
     return [...m.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   };
-  const company = (i: Incident) => String(i.metrics?.company || i.service.split("-")[0]);
+  const company = (i: Incident) => String(i.metrics?.['company'] || i.service.split("-")[0]);
   const themes: [string, RegExp][] = [
     ["Bad config / rule push", /config|rule|policy|feature file|flag|channel file/i],
     ["Human command error", /typo|mistyp|manual|ran |command|script/i],
@@ -138,7 +138,7 @@ export const getDashboard = createServerFn({ method: "GET" }).handler(async (): 
     resolved: resolved.length,
     open: incidents.length - resolved.length,
     services: new Set(incidents.map((i) => i.service)).size,
-    median_minutes: minutes.length ? minutes[Math.floor(minutes.length / 2)] : 0,
+    median_minutes: minutes[Math.floor(minutes.length / 2)] ?? 0,
     by_severity: count((i) => i.severity),
     by_company: count(company).slice(0, 8),
     root_causes: causes,

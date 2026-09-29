@@ -91,7 +91,7 @@ function IncidentsPage() {
         )}
         {data?.items.map((i) => {
           const isOpen = open === i.id;
-          const source = i.metrics?.source as string | undefined;
+          const source = i.metrics?.['source'] as string | undefined;
           return (
             <article key={i.id} className="rounded-lg border border-border bg-card transition-colors hover:border-primary/40">
               <button className="flex w-full flex-wrap items-center gap-3 p-4 text-left" onClick={() => setOpen(isOpen ? null : i.id)} aria-expanded={isOpen}>
