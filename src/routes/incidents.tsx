@@ -21,6 +21,7 @@ const incidentsQuery = (s: Search) =>
 const servicesQuery = queryOptions({ queryKey: ["services"], queryFn: () => listServices() });
 
 export const Route = createFileRoute("/incidents")({
+  staticData: { sitemap: true },
   validateSearch: search,
   head: () => ({
     meta: [

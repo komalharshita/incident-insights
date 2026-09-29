@@ -14,6 +14,7 @@ const resolvedQuery = queryOptions({
 });
 
 export const Route = createFileRoute("/compare")({
+  staticData: { sitemap: true },
   validateSearch: z.object({ incident: z.number().int().optional() }),
   head: () => ({
     meta: [

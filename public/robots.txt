@@ -12,3 +12,5 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+Sitemap: https://incident-insights-90.lovable.app/sitemap.xml
